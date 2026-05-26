@@ -47,7 +47,14 @@ class SwipeViewModel @Inject constructor(
 
     init {
         settingsRepository.settings
-            .onEach { settings: AppSettings -> hapticManager.updateSettings(settings) }
+            .onEach { settings: AppSettings -> 
+                hapticManager.updateSettings(settings) 
+                _state.value = _state.value.copy(
+                    autoplayVideos = settings.autoplayVideos,
+                    muteVideosByDefault = settings.muteVideosByDefault,
+                    showSwipeActionBar = settings.showSwipeActionBar
+                )
+            }
             .launchIn(viewModelScope)
 
         viewModelScope.launch {
@@ -168,5 +175,8 @@ data class SwipeUiState(
     val reviewedCount: Int = 0,
     val binBytesThisSession: Long = 0L,
     val undoVisible: Boolean = false,
-    val undoToken: Int = 0
+    val undoToken: Int = 0,
+    val autoplayVideos: Boolean = true,
+    val muteVideosByDefault: Boolean = true,
+    val showSwipeActionBar: Boolean = true
 )
