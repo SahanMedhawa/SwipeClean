@@ -8,71 +8,65 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.swipeclean.R
 import com.example.swipeclean.domain.model.MediaItem
 import com.example.swipeclean.domain.model.SwipeAction
-import com.example.swipeclean.ui.theme.ActionBin
-import com.example.swipeclean.ui.theme.ActionFave
-import com.example.swipeclean.ui.theme.ActionKeep
+import com.example.swipeclean.ui.theme.ActionBinOverlay
+import com.example.swipeclean.ui.theme.ActionFaveOverlay
+import com.example.swipeclean.ui.theme.ActionKeepOverlay
 import com.example.swipeclean.util.ByteFormat
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
-/**
- * Single swipeable card. Owns its own [Animatable] offset, applies rotation,
- * scale, and alpha based on drag distance, and emits the appropriate
- * [SwipeAction] when the drag crosses the threshold.
- *
- * The card calls [onThresholdCross] once per drag the first time the user
- * crosses 30% of screen width (haptic feedback), and [onSnapBack] when a drag
- * is released below threshold and the card springs back to centre.
- *
- * [isTop] gates gesture input: only the topmost card in the stack receives
- * touches; lower cards render statically for depth.
- */
+private enum class DragAxis { HORIZONTAL, VERTICAL }
+
 @Composable
 fun SwipeCard(
     item: MediaItem,
     isTop: Boolean,
-    stackIndex: Int,
+    stackIndex: Int = 0,
+    autoplayVideos: Boolean = true,
+    muteVideosByDefault: Boolean = true,
+    showSwipeActionBar: Boolean = true,
     onSwiped: (SwipeAction) -> Unit,
     onThresholdCross: () -> Unit,
     onSnapBack: () -> Unit,
@@ -82,12 +76,21 @@ fun SwipeCard(
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-    val thresholdPx = screenWidthPx * 0.30f
+    val thresholdPx = screenWidthPx * 0.025f
+    val arcHeightPx = with(density) { 150.dp.toPx() }
+
+    val haptic = LocalHapticFeedback.current
 
     val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     var thresholdNotified by remember(item.id) { mutableStateOf(false) }
     var dismissed by remember(item.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    var dragAxis by remember { mutableStateOf<DragAxis?>(null) }
+    var accumulatedX by remember { mutableStateOf(0f) }
+    var accumulatedY by remember { mutableStateOf(0f) }
+
+    var isMuted by remember(item.id) { mutableStateOf(muteVideosByDefault) }
 
     LaunchedEffect(item.id) {
         offset.snapTo(Offset.Zero)
@@ -101,60 +104,59 @@ fun SwipeCard(
     val dragMagnitude = (abs(dragX) / thresholdPx).coerceIn(0f, 1f)
     val verticalMagnitude = (-dragY / thresholdPx).coerceIn(0f, 1f)
 
-    val stackDepthScale = 1f - 0.05f * stackIndex
-    val stackDepthOffsetY = with(density) { (12 * stackIndex).dp.toPx() }
-
     val baseRotation = if (isTop) rotation else 0f
-    val cardScale = stackDepthScale * (if (isTop) 1f - 0.04f * dragMagnitude else 1f)
+    val cardScale = if (isTop) 1f - 0.04f * dragMagnitude else 1f
     val cardAlpha = if (isTop) 1f - 0.4f * (dragMagnitude.coerceAtLeast(verticalMagnitude * 0.6f)) else 1f
 
-    val binOverlay = if (isTop && dragX < 0) dragMagnitude else 0f
-    val keepOverlay = if (isTop && dragX > 0) dragMagnitude else 0f
-    val faveOverlay = if (isTop && dragY < 0 && abs(dragY) > abs(dragX)) verticalMagnitude else 0f
+    // When top card is pulled, we animate its radius slightly so it "lifts" off the screen
+    // Background cards have a rounded shape to look like a stack.
+    val animatedRadius = if (isTop) (dragMagnitude * 32).coerceIn(0f, 32f).dp else 32.dp
+    val cardShape = RoundedCornerShape(animatedRadius)
 
     Box(
         modifier = modifier
             .graphicsLayer {
                 translationX = if (isTop) dragX else 0f
-                translationY = stackDepthOffsetY + (if (isTop) dragY else 0f)
+                translationY = if (isTop) dragY else 0f
                 rotationZ = baseRotation
                 scaleX = cardScale
                 scaleY = cardScale
                 alpha = cardAlpha
+                shadowElevation = if (dragMagnitude > 0f) 24f else 0f
+                shape = cardShape
+                clip = true
+                ambientShadowColor = Color.Black.copy(alpha = 0.6f)
+                spotShadowColor = Color.Black.copy(alpha = 0.5f)
             }
+            .clip(cardShape)
             .pointerInput(item.id, isTop) {
                 if (!isTop) return@pointerInput
-                androidx.compose.foundation.gestures.detectTapGestures(onTap = { onTap() })
-            }
-            .pointerInput(item.id, isTop) {
-                if (!isTop) return@pointerInput
-                awaitGesture { delta, releaseVelocity ->
-                    val newOffset = Offset(
-                        x = offset.value.x + delta.x,
-                        y = offset.value.y + delta.y
-                    )
-                    scope.launch { offset.snapTo(newOffset) }
-
-                    val mag = (abs(newOffset.x) / thresholdPx).coerceIn(0f, 1f)
-                    val verticalMag = (-newOffset.y / thresholdPx).coerceIn(0f, 1f)
-                    val pastThreshold = mag >= 1f || verticalMag >= 1f
-                    if (pastThreshold && !thresholdNotified) {
-                        thresholdNotified = true
-                        onThresholdCross()
-                    } else if (!pastThreshold) {
-                        thresholdNotified = false
+                detectTapGestures(onTap = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    if (item.isVideo) {
+                        isMuted = !isMuted
+                    } else {
+                        onTap()
                     }
-
-                    if (releaseVelocity != null) {
+                })
+            }
+            .pointerInput(item.id, isTop) {
+                if (!isTop) return@pointerInput
+                detectDragGestures(
+                    onDragStart = {
+                        accumulatedX = 0f
+                        accumulatedY = 0f
+                        dragAxis = null
+                    },
+                    onDragEnd = {
                         val current = offset.value
                         val crossedHorizontal = abs(current.x) >= thresholdPx
-                        val crossedVertical = -current.y >= thresholdPx &&
-                            abs(current.y) > abs(current.x)
+                        val crossedVertical = -current.y >= thresholdPx
 
                         val action = when {
-                            crossedVertical -> SwipeAction.FAVORITE
-                            crossedHorizontal && current.x < 0 -> SwipeAction.BIN
-                            crossedHorizontal && current.x > 0 -> SwipeAction.KEEP
+                            dragAxis == DragAxis.VERTICAL && crossedVertical -> SwipeAction.FAVORITE
+                            dragAxis == DragAxis.HORIZONTAL && crossedHorizontal && current.x < 0 -> SwipeAction.BIN
+                            dragAxis == DragAxis.HORIZONTAL && crossedHorizontal && current.x > 0 -> SwipeAction.KEEP
                             else -> null
                         }
 
@@ -166,7 +168,7 @@ fun SwipeCard(
                                     SwipeAction.KEEP -> Offset(screenWidthPx * 1.5f, current.y)
                                     SwipeAction.FAVORITE -> Offset(current.x, -screenWidthPx * 1.5f)
                                 }
-                                offset.animateTo(target, animationSpec = tween(durationMillis = 220))
+                                offset.animateTo(target, animationSpec = tween(durationMillis = 350))
                                 onSwiped(action)
                             }
                         } else {
@@ -181,55 +183,101 @@ fun SwipeCard(
                                 onSnapBack()
                             }
                         }
+                    },
+                    onDragCancel = {
+                        scope.launch {
+                            offset.animateTo(Offset.Zero, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow))
+                            onSnapBack()
+                        }
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        accumulatedX += dragAmount.x
+                        accumulatedY += dragAmount.y
+
+                        if (dragAxis == null) {
+                            if (abs(accumulatedX) > 10f || abs(accumulatedY) > 10f) {
+                                dragAxis = if (abs(accumulatedX) > abs(accumulatedY)) DragAxis.HORIZONTAL else DragAxis.VERTICAL
+                            }
+                        }
+
+                        if (dragAxis == DragAxis.HORIZONTAL) {
+                            val normX = (accumulatedX / screenWidthPx).coerceIn(-1.5f, 1.5f)
+                            val newY = (normX * normX) * arcHeightPx
+                            scope.launch { offset.snapTo(Offset(accumulatedX, newY)) }
+                        } else if (dragAxis == DragAxis.VERTICAL) {
+                            if (accumulatedY < 0) {
+                                scope.launch { offset.snapTo(Offset(0f, accumulatedY)) }
+                            } else {
+                                scope.launch { offset.snapTo(Offset(0f, 0f)) }
+                            }
+                        }
+
+                        val mag = (abs(offset.value.x) / thresholdPx).coerceIn(0f, 1f)
+                        val verticalMag = (-offset.value.y / thresholdPx).coerceIn(0f, 1f)
+                        val pastThreshold = mag >= 1f || verticalMag >= 1f
+                        if (pastThreshold && !thresholdNotified) {
+                            thresholdNotified = true
+                            onThresholdCross()
+                        } else if (!pastThreshold) {
+                            thresholdNotified = false
+                        }
                     }
-                }
+                )
             }
     ) {
-        CardSurface(item = item)
-
-        if (isTop) {
-            SwipeLabel(
-                text = stringResource(R.string.swipe_label_bin),
-                color = ActionBin,
-                alpha = binOverlay,
-                alignment = Alignment.TopStart
-            )
-            SwipeLabel(
-                text = stringResource(R.string.swipe_label_keep),
-                color = ActionKeep,
-                alpha = keepOverlay,
-                alignment = Alignment.TopEnd
-            )
-            SwipeLabel(
-                text = stringResource(R.string.swipe_label_fave),
-                color = ActionFave,
-                alpha = faveOverlay,
-                alignment = Alignment.TopCenter
-            )
+        CardSurface(
+            item = item,
+            isTop = isTop,
+            autoplayVideos = autoplayVideos,
+            isMuted = isMuted,
+            onMuteToggle = { 
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                isMuted = !isMuted 
+            },
+            showSwipeActionBar = showSwipeActionBar
+        )
+        
+        // Full screen color tint based on swipe direction, like the HTML sepia/hue-rotate
+        if (isTop && dragMagnitude > 0f && dragAxis == DragAxis.HORIZONTAL) {
+            val overlayColor = if (dragX < 0) {
+                Color.Red.copy(alpha = dragMagnitude * 0.15f)
+            } else {
+                Color.Green.copy(alpha = dragMagnitude * 0.15f)
+            }
+            Box(modifier = Modifier.fillMaxSize().background(overlayColor))
         }
     }
 }
 
 @Composable
-private fun CardSurface(item: MediaItem) {
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(32.dp)),
-        shape = RoundedCornerShape(32.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 12.dp,
-        tonalElevation = 4.dp
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+private fun CardSurface(
+    item: MediaItem,
+    isTop: Boolean,
+    autoplayVideos: Boolean,
+    isMuted: Boolean,
+    onMuteToggle: () -> Unit,
+    showSwipeActionBar: Boolean
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (item.isVideo && isTop) {
+            VideoCardPlayer(
+                uri = item.uri,
+                isActive = true,
+                isMuted = isMuted,
+                autoPlay = autoplayVideos
+            )
+        } else {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(item.uri)
                     .crossfade(true)
                     .build(),
                 contentDescription = item.displayName,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
+
             if (item.isVideo) {
                 Icon(
                     imageVector = Icons.Rounded.PlayCircle,
@@ -240,81 +288,148 @@ private fun CardSurface(item: MediaItem) {
                     tint = Color.White.copy(alpha = 0.92f)
                 )
             }
-            CardMetadata(item = item, modifier = Modifier.align(Alignment.BottomCenter))
+        }
+
+        // Bottom scrim gradient for readability
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.65f)
+                .align(Alignment.BottomCenter)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x33000000), // black/20
+                            Color(0x80000000), // black/50
+                            Color(0xCC000000), // black/80
+                            Color(0xE6000000)  // black/90
+                        )
+                    )
+                )
+        )
+        
+        // Metadata text placed securely above the action bar
+        CardMetadata(
+            item = item,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = if (showSwipeActionBar) 220.dp else 48.dp)
+        )
+
+        // Mute Icon at Top Right for videos
+        if (item.isVideo && isTop) {
+            IconButton(
+                onClick = onMuteToggle,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 100.dp, end = 16.dp)
+                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(50))
+            ) {
+                Icon(
+                    imageVector = if (isMuted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
+                    contentDescription = "Toggle Mute",
+                    tint = Color.White
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun CardMetadata(item: MediaItem, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.55f))
-            .padding(PaddingValues(horizontal = 20.dp, vertical = 14.dp))
+    Column(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = item.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = ByteFormat.format(item.sizeBytes),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
-                Text("·", color = Color.White.copy(alpha = 0.6f))
-                Text(
-                    text = item.resolutionLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
-                item.durationMs?.let { duration ->
-                    Text("·", color = Color.White.copy(alpha = 0.6f))
-                    Text(
-                        text = formatDuration(duration),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.85f)
-                    )
-                }
+        Text(
+            text = item.displayName,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            modifier = Modifier.graphicsLayer {
+                shadowElevation = 4f
+                ambientShadowColor = Color.Black
+                spotShadowColor = Color.Black
             }
-            Text(
-                text = item.folderName,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.7f)
-            )
+        )
+        
+        val details = buildString {
+            append(ByteFormat.format(item.sizeBytes))
+            append(" • ")
+            append(item.resolutionLabel)
+            item.durationMs?.let {
+                append(" • ")
+                append(formatDuration(it))
+            }
+            append("\n")
+            append(item.folderName)
         }
+        
+        Text(
+            text = details,
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.graphicsLayer {
+                shadowElevation = 4f
+                ambientShadowColor = Color.Black
+                spotShadowColor = Color.Black
+            }
+        )
     }
 }
 
 @Composable
 private fun BoxScope.SwipeLabel(
     text: String,
-    color: Color,
+    icon: ImageVector,
+    badgeColor: Color,
+    textColor: Color,
     alpha: Float,
-    alignment: Alignment
+    alignment: Alignment,
+    labelRotation: Float
 ) {
     AnimatedVisibility(
         visible = alpha > 0.05f,
-        enter = fadeIn(),
-        exit = fadeOut(),
-        modifier = Modifier.align(alignment).padding(24.dp)
+        enter = fadeIn(tween(150)) + scaleIn(
+            initialScale = 0.6f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        ),
+        exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.6f),
+        modifier = Modifier
+            .align(alignment)
+            .padding(24.dp)
+            .graphicsLayer { rotationZ = labelRotation }
     ) {
         Surface(
-            color = color.copy(alpha = (alpha * 0.85f).coerceIn(0.4f, 0.95f)),
-            shape = RoundedCornerShape(16.dp)
+            color = badgeColor,
+            shape = RoundedCornerShape(16.dp),
+            shadowElevation = 8.dp
         ) {
-            Text(
-                text = text,
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = textColor
+                )
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
@@ -325,22 +440,3 @@ private fun formatDuration(ms: Long): String {
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
 }
-
-/**
- * Helper extension wrapping detectDragGestures into a coroutine-friendly form.
- * Calls [onDragOrRelease] for every drag delta (with releaseVelocity = null)
- * and once on release (with releaseVelocity set).
- */
-private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.awaitGesture(
-    onDragOrRelease: (delta: Offset, releaseVelocity: Offset?) -> Unit
-) {
-    androidx.compose.foundation.gestures.detectDragGestures(
-        onDrag = { change, dragAmount ->
-            change.consume()
-            onDragOrRelease(dragAmount, null)
-        },
-        onDragEnd = { onDragOrRelease(Offset.Zero, Offset.Zero) },
-        onDragCancel = { onDragOrRelease(Offset.Zero, Offset.Zero) }
-    )
-}
-
