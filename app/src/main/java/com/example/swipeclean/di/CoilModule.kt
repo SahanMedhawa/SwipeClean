@@ -20,6 +20,9 @@ object CoilModule {
     @Singleton
     fun provideImageLoader(@ApplicationContext context: Context): ImageLoader =
         ImageLoader.Builder(context)
+            .components {
+                add(coil.decode.VideoFrameDecoder.Factory())
+            }
             .memoryCache {
                 MemoryCache.Builder(context)
                     .maxSizePercent(0.25)
