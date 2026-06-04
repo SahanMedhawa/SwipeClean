@@ -47,7 +47,9 @@ class SettingsDataStore @Inject constructor(
                 runCatching { ThemeMode.valueOf(it) }.getOrNull()
             } ?: ThemeMode.SYSTEM,
             autoplayVideos = prefs[Keys.AUTOPLAY_VIDEOS] ?: true,
+            muteVideosByDefault = prefs[Keys.MUTE_VIDEOS_BY_DEFAULT] ?: true,
             binNotificationsEnabled = prefs[Keys.BIN_NOTIFICATIONS] ?: true,
+            showSwipeActionBar = prefs[Keys.SHOW_SWIPE_ACTION_BAR] ?: true,
             onboardingComplete = prefs[Keys.ONBOARDING_COMPLETE] ?: false
         )
     }
@@ -80,8 +82,16 @@ class SettingsDataStore @Inject constructor(
         store.edit { it[Keys.AUTOPLAY_VIDEOS] = value }
     }
 
+    suspend fun setMuteVideosByDefault(value: Boolean) {
+        store.edit { it[Keys.MUTE_VIDEOS_BY_DEFAULT] = value }
+    }
+
     suspend fun setBinNotificationsEnabled(value: Boolean) {
         store.edit { it[Keys.BIN_NOTIFICATIONS] = value }
+    }
+
+    suspend fun setShowSwipeActionBar(value: Boolean) {
+        store.edit { it[Keys.SHOW_SWIPE_ACTION_BAR] = value }
     }
 
     suspend fun setOnboardingComplete(value: Boolean) {
@@ -96,7 +106,9 @@ class SettingsDataStore @Inject constructor(
         val MIN_FILE_SIZE_BYTES = longPreferencesKey("min_file_size_bytes")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val AUTOPLAY_VIDEOS = booleanPreferencesKey("autoplay_videos")
+        val MUTE_VIDEOS_BY_DEFAULT = booleanPreferencesKey("mute_videos_by_default")
         val BIN_NOTIFICATIONS = booleanPreferencesKey("bin_notifications_enabled")
+        val SHOW_SWIPE_ACTION_BAR = booleanPreferencesKey("show_swipe_action_bar")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
     }
 }
