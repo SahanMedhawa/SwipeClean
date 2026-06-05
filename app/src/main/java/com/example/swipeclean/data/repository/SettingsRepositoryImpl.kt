@@ -27,6 +27,8 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setMinFileSizeBytes(bytes: Long) = store.setMinFileSizeBytes(bytes)
     override suspend fun setThemeMode(value: ThemeMode) = store.setThemeMode(value)
     override suspend fun setAutoplayVideos(value: Boolean) = store.setAutoplayVideos(value)
+    override suspend fun setMuteVideosByDefault(value: Boolean) = store.setMuteVideosByDefault(value)
     override suspend fun setBinNotificationsEnabled(value: Boolean) = store.setBinNotificationsEnabled(value)
+    override suspend fun setShowSwipeActionBar(value: Boolean) = store.setShowSwipeActionBar(value)
     override suspend fun setOnboardingComplete(value: Boolean) = store.setOnboardingComplete(value)
 }
