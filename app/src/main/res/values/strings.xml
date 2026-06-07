@@ -1,0 +1,138 @@
+<resources>
+    <string name="app_name">SwipeClean</string>
+
+    <!-- Permission gate -->
+    <string name="perm_title">SwipeClean needs your gallery</string>
+    <string name="perm_rationale">We never delete anything without your say-so. Photos and videos stay on your device until you empty the bin.</string>
+    <string name="perm_grant_cta">Grant access</string>
+    <string name="perm_settings_cta">Open settings</string>
+    <string name="perm_denied_explainer">Access was permanently denied. Open settings and enable media permissions to continue.</string>
+
+    <!-- Home -->
+    <string name="home_title">Tidy up your gallery</string>
+    <string name="home_subtitle">Swipe through your library and reclaim storage.</string>
+    <string name="home_start_cleaning">Start cleaning</string>
+    <string name="home_view_bin">View recycle bin</string>
+    <string name="home_stat_photos">Photos</string>
+    <string name="home_stat_videos">Videos</string>
+    <string name="home_stat_in_bin">In bin</string>
+    <string name="home_stat_reclaimable">Reclaimable</string>
+    <string name="home_stat_duplicates">Duplicates</string>
+    <string name="home_streak">%1$d day streak</string>
+    <string name="home_streak_zero">Start a streak today</string>
+    <string name="home_ring_used">Used</string>
+    <string name="home_ring_free">Free</string>
+    <string name="home_ring_reclaimable">Reclaimable</string>
+
+    <!-- Swipe -->
+    <string name="swipe_label_bin">BIN</string>
+    <string name="swipe_label_keep">KEEP</string>
+    <string name="swipe_label_fave">FAVE</string>
+    <string name="swipe_action_undo">Undo</string>
+    <string name="swipe_action_bin">Bin</string>
+    <string name="swipe_action_keep">Keep</string>
+    <string name="swipe_action_favorite">Favorite</string>
+    <string name="swipe_empty_title">All caught up</string>
+    <string name="swipe_empty_subtitle">You\'ve reviewed everything in your library.</string>
+    <string name="swipe_session_counter">Reviewed %1$d · %2$s to bin</string>
+    <string name="swipe_undo_chip">Undo last action</string>
+    <string name="swipe_duplicate_badge">DUPLICATE</string>
+
+    <!-- Bin -->
+    <string name="bin_title">Recycle bin</string>
+    <string name="bin_empty_cta">Empty bin</string>
+    <string name="bin_empty_title">Bin is empty</string>
+    <string name="bin_empty_subtitle">Swipe left in the review screen to send items here.</string>
+    <string name="bin_days_remaining">Deletes in %1$d days</string>
+    <string name="bin_days_remaining_one">Deletes tomorrow</string>
+    <string name="bin_days_remaining_today">Deletes today</string>
+    <string name="bin_restore">Restore</string>
+    <string name="bin_delete">Delete</string>
+    <string name="bin_confirm_title">Empty recycle bin?</string>
+    <string name="bin_confirm_message">%1$s will be permanently deleted. This cannot be undone.</string>
+    <string name="bin_confirm_cta">Free up %1$s</string>
+    <string name="bin_cancel">Cancel</string>
+    <string name="bin_selection_count">%1$d selected</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_back">Back</string>
+
+    <string name="onboarding_p1_title">Swipe your gallery clean</string>
+    <string name="onboarding_p1_body">Review one photo or video at a time with playful, satisfying swipes.</string>
+
+    <string name="onboarding_p2_title">Safe by design</string>
+    <string name="onboarding_p2_body">Nothing leaves your device immediately. Items wait in the Recycle Bin for 30 days.</string>
+
+    <string name="onboarding_p3_title">Track every byte you save</string>
+    <string name="onboarding_p3_body">Watch your reclaimable storage grow with every cleaning session.</string>
+
+    <string name="onboarding_p4_title">Protect your best shots</string>
+    <string name="onboarding_p4_body">Swipe up to favorite a photo — it\'ll be excluded from future cleanups.</string>
+
+    <string name="onboarding_perm_title">Allow SwipeClean to see your photos</string>
+    <string name="onboarding_perm_body">We only read thumbnails for the card stack. Nothing is permanently deleted until you empty the Recycle Bin. You can change access anytime in Settings.</string>
+    <string name="onboarding_perm_gallery_granted">Gallery access granted</string>
+    <string name="onboarding_notif_title">Bin reminders (optional)</string>
+    <string name="onboarding_notif_body">Get a gentle heads-up a few days before items in your bin are scheduled for auto-deletion. You can turn this off later in Settings.</string>
+    <string name="onboarding_notif_cta">Allow reminders</string>
+    <string name="onboarding_notif_granted">Reminders on</string>
+    <string name="onboarding_notif_skip">Maybe later</string>
+    <string name="onboarding_continue_app">Continue to SwipeClean</string>
+
+    <!-- Preview -->
+    <string name="preview_share">Share</string>
+    <string name="preview_bin">Send to bin</string>
+    <string name="preview_keep">Keep</string>
+    <string name="preview_favorite">Favorite</string>
+    <string name="preview_dismiss">Close</string>
+    <string name="preview_metadata">Details</string>
+
+    <!-- Analytics -->
+    <string name="analytics_title">Your clean-up</string>
+    <string name="analytics_total_reviewed">Reviewed</string>
+    <string name="analytics_total_binned">Sent to bin</string>
+    <string name="analytics_total_deleted">Permanently deleted</string>
+    <string name="analytics_total_reclaimed">Storage reclaimed</string>
+    <string name="analytics_ratio">Keep vs bin</string>
+    <string name="analytics_streak">Streak</string>
+    <string name="analytics_streak_days">%1$d days</string>
+    <string name="analytics_fastest_session">Fastest session</string>
+    <string name="analytics_most_cleaned_folder">Most cleaned folder</string>
+    <string name="analytics_no_data">Start swiping to see your stats fill in.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_haptics">Haptic feedback</string>
+    <string name="settings_haptic_intensity">Intensity</string>
+    <string name="settings_intensity_low">Low</string>
+    <string name="settings_intensity_medium">Medium</string>
+    <string name="settings_intensity_high">High</string>
+    <string name="settings_filter">What to review</string>
+    <string name="settings_filter_photos">Photos only</string>
+    <string name="settings_filter_videos">Videos only</string>
+    <string name="settings_filter_both">Photos and videos</string>
+    <string name="settings_min_file_size">Minimum file size</string>
+    <string name="settings_min_file_size_value">%1$s</string>
+    <string name="settings_min_size_off">Off</string>
+    <string name="settings_bin_period">Recycle bin auto-delete</string>
+    <string name="settings_bin_period_value">%1$d days</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_autoplay">Autoplay videos</string>
+    <string name="settings_bin_notifications">Bin expiry reminders</string>
+    <string name="settings_clear_data">Clear all data</string>
+    <string name="settings_clear_data_warning">This resets stats and empties the Recycle Bin (without freeing physical storage).</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_bin_expiry">Recycle bin reminders</string>
+    <string name="notification_channel_bin_expiry_desc">Warns you before items in the Recycle Bin are permanently removed.</string>
+    <string name="notification_bin_expiry_title">Bin items expiring soon</string>
+    <string name="notification_bin_expiry_body">%1$d %2$s will be permanently deleted in %3$d days. Open SwipeClean to keep them.</string>
+    <string name="notification_bin_expiry_items_one">photo or video</string>
+    <string name="notification_bin_expiry_items_other">photos and videos</string>
+</resources>
