@@ -16,6 +16,8 @@ interface SettingsRepository {
     suspend fun setMinFileSizeBytes(bytes: Long)
     suspend fun setThemeMode(value: ThemeMode)
     suspend fun setAutoplayVideos(value: Boolean)
+    suspend fun setMuteVideosByDefault(value: Boolean)
     suspend fun setBinNotificationsEnabled(value: Boolean)
+    suspend fun setShowSwipeActionBar(value: Boolean)
     suspend fun setOnboardingComplete(value: Boolean)
 }
