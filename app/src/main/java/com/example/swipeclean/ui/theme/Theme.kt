@@ -67,10 +67,10 @@ private val LightColorScheme = lightColorScheme(
 fun SwipeCleanTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     /**
-     * Dynamic Material You color — pairs best with Compose BOM 2025.05+ for
-     * Material 3 expressive component defaults (shape motion, tonal surfaces).
+     * Dynamic Material You color. Set to false by default to enforce 
+     * the Tonal Clarity specific brand colors over user wallpapers.
      */
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
@@ -81,7 +81,11 @@ fun SwipeCleanTheme(
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (darkTheme) {
+                dynamicDarkColorScheme(context)
+            } else {
+                dynamicLightColorScheme(context)
+            }
         }
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
