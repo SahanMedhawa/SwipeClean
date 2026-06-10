@@ -15,7 +15,9 @@ data class AppSettings(
     val minFileSizeBytes: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val autoplayVideos: Boolean = true,
+    val muteVideosByDefault: Boolean = true,
     val binNotificationsEnabled: Boolean = true,
+    val showSwipeActionBar: Boolean = true,
     val onboardingComplete: Boolean = false
 ) {
     companion object {
